@@ -1,328 +1,173 @@
-#ifndef jakobian_h
-#define jakobian_h
-#include<iostream>
-#include<math.h>
-#include<vector>
+#pragma once
+#ifndef net_h
+#define net_h
+#include <iostream>
+#include <iomanip>
+#include <vector>
 
 typedef std::vector<std::vector<double>> vec2D;
 
-
-struct pom {
-	vec2D PC1, PC2;
-	std::vector<double> Pvec;
-	pom() {
-		PC1.resize(4);
-		PC2.resize(4);
-		Pvec.resize(4);
+struct jakobian {
+	std::vector<vec2D> PC, oPC;
+	std::vector<double> det;
+	jakobian() {
+		PC.resize(4);
+		oPC.resize(4);
+		det.resize(4);
 		for (int i = 0; i < 4; ++i) {
-			PC1[i].resize(4);
-			PC2[i].resize(4);
+			PC[i].resize(2);
+			oPC[i].resize(2);
+			for (int j = 0; j < 2; ++j) {
+				PC[i][j].resize(2);
+				oPC[i][j].resize(2);
+			}
 		}
 	}
-
-	void showPC() {
-		std::cout << "\nPC1:\n-----------------------------\n";
+	void showJakobian() {
 		for (int i = 0; i < 4; ++i) {
-			for (int j = 0; j < 4; ++j) {
-				std::cout << this->PC1[i][j] << " ";
-			}
-			std::cout << std::endl;
-		}
-
-		std::cout << "\nPC2:\n-----------------------------\n";
-		for (int i = 0; i < 4; ++i) {
-			for (int j = 0; j < 4; ++j) {
-				std::cout << this->PC2[i][j] << " ";
-			}
-			std::cout << std::endl;
-		}
-	}
-};
-
-struct element4_2D {
-	int N, pointsNumber;
-	std::vector<double> wKsi, wEta, Hcords;
-	vec2D dKsi, dEta, Pvector;
-	std::vector<vec2D> walls, surface;
-
-
-	element4_2D(int N) {
-		this->N = N;
-		this->pointsNumber = N * N;
-
-		Hcords.resize(N);
-		dKsi.resize(pointsNumber);
-		dEta.resize(pointsNumber);
-		Pvector.resize(4);
-
-		for (int i = 0; i < pointsNumber; ++i) {
-			dKsi[i].resize(4);
-			dEta[i].resize(4);
-		}
-
-		walls.resize(4);
-		surface.resize(4);
-
-		for (int i = 0; i < 4; ++i) {
-			walls[i].resize(4);
-			surface[i].resize(4);
-			Pvector[i].resize(4);
-			for (int j = 0; j < 4; ++j) {
-				walls[i][j].resize(4);
-				surface[i][j].resize(4);
-			}
-		}
-
-		if (N == 2) {
-			double val = 1. / sqrt(3);
-			this->wKsi = { -1. * val , val, val, -1. * val };//Valuse on local X axis for 2 integral points
-			this->wEta = { -1. * val , -1. * val, val, val };//Valuse on local Y axis for 3 integral points
-			this->Hcords = { 1, val };
-
-		}
-		else if (N == 3) {
-			double val = sqrt(3. / 5.);
-			this->wKsi = { -1. * val , 0, val, -1. * val, 0, val, -1. * val, 0, val };
-			this->wEta = { -1. * val , -1. * val, -1. * val, 0, 0, 0, val, val, val };
-			this->Hcords = { 1, 0, val };
-		}
-	}
-
-	void showDerivates() {
-		std::cout << "Funkcje ksztaltu dN/dKsi:\n";
-		for (int i = 0; i < pointsNumber; ++i) {
-			for (int j = 0; j < 4; ++j) {
-				std::cout << dKsi[i][j] << " ";
-			}
-			std::cout << std::endl;
-		}
-
-		std::cout << "\nFunkcje ksztaltu dN/dEta:\n";
-		for (int i = 0; i < pointsNumber; ++i) {
-			for (int j = 0; j < 4; ++j) {
-				std::cout << dEta[i][j] << " ";
-			}
-			std::cout << std::endl;
-		}
-	}
-
-	void showWalls() {
-		std::cout << "\nWalls:\n";
-		for (int i = 0; i < 4; ++i) {
-			std::cout << "\nWall: " << i + 1 << "\n---------------------------------\n";
-			for (int j = 0; j < 4; ++j) {
-				for (int k = 0; k < 4; ++k) {
-					std::cout << this->surface[i][j][k] << " ";
+			for (int j = 0; j < 2; ++j) {
+				for (int k = 0; k < 2; ++k) {
+					std::cout << this->oPC[i][j][k] << " ";
 				}
 				std::cout << std::endl;
 			}
+			std::cout << "Wyznacznik: " << det[i] << std::endl;
 		}
 	}
 };
 
-double N1(double x, double y) {
-	return (0.25) * (1. - x) * (1. - y);
-}
-double N2(double x, double y) {
-	return (0.25) * (1. + x) * (1. - y);
-}
-double N3(double x, double y) {
-	return (0.25) * (1. + x) * (1. + y);
-}
-double N4(double x, double y) {
-	return (0.25) * (1. - x) * (1. + y);
-}
+struct node {
+	double x, y;
+	bool BC;
+	double initTemp;
+	void show() {
+		std::cout << "(" << x << "," << y << ") BC: " << BC;
+	}
+};
 
+struct element {
+	int ID[4];
+	node cords[4];
+	jakobian jak;
+	double Hmatrix[4][4];
+	double Cmatrix[4][4];
+	double Hbc[4][4];
+	double P[4];
 
-double dN1(double x) {
-	return (-1) * (0.25) * (1. - x);
-}
-double dN2(double x) {
-	return 0.25 * (1. - x);
-}
-double dN3(double x) {
-	return 0.25 * (1. + x);
-}
-double dN4(double x) {
-	return (-1) * (0.25) * (1. + x);
-}
+	void show() {
+		std::cout << "( ";
+		for (int i = 0; i < 4; ++i)
+			std::cout << ID[i] << " ";
+		std::cout << ")";
+	}
+};
 
-void wallsCnt(grid net, element4_2D& elem, double conductivity, double ambTemp) {
-	double (*pFunc[4])(double, double);//Funkcje ksztaltu
-	pFunc[0] = N1;
-	pFunc[1] = N2;
-	pFunc[2] = N3;
-	pFunc[3] = N4;
+struct grid {
+	double H, B;  //Net physical dimensions
+	int nH, nB; //Nodes net dimensions
 
-	std::vector<double> cords;
-	if (elem.N == 2) {
-		
-		cords.resize(elem.N);
+	int nN, nE; //nN - number of nodes, nE - number of elements
+	double dX, dY; //dX - single step on X axis, dY - single step on Y axis
 
-		for (int i = 0; i < 4; ++i) {
-			if (i == 0) {
-				cords[0] = (-1. * elem.Hcords[1]);
-				cords[1] = (-1. * elem.Hcords[0]);
+	std::vector <element> elements;
+	std::vector <node> nodes;
+
+	grid(double H, double B, int nH, int nB) {
+		this->H = H;
+		this->B = B;
+		this->nH = nH;
+		this->nB = nB;
+
+		this->nN = nH * nB;
+		this->nE = (nH - 1) * (nB - 1);
+		this->dX = B / (nB - 1);
+		this->dY = H / (nH - 1);
+	}
+
+	void showInfo() {
+		std::cout << "H: " << this->H << "\nB: " << this->B << "\nnH: " << this->nH << "\nnB: " << this->nB << "\nnN: " << this->nN << "\nnE: "
+			<< this->nE << "\ndX: " << this->dX << "\ndY: " << this->dY << "\n\n";
+	}
+
+	void showNet() {
+
+		std::cout << "Nodes:\n";
+		for (int i = this->nH; i >= 1; --i) {
+			for (int j = i; j <= this->nN; j += this->nH) {
+				nodes[j - 1].show();
+				std::cout << "\t\t";
 			}
-			else if (i == 1) {
-				cords[0] = (elem.Hcords[0]);
-				cords[1] = (-1. * elem.Hcords[1]);
-			}
-			else if (i == 2) {
-				cords[0] = (elem.Hcords[1]);
-				cords[1] = (elem.Hcords[0]);
-			}
-			else if (i == 3) {
-				cords[0] = (-1. * elem.Hcords[0]);
-				cords[1] = (elem.Hcords[1]);
-			}
+			std::cout << std::endl;
+		}
 
-			for (int j = 0; j < elem.N; ++j) {
-				if (i == 0 && j == 1)
-					cords[0] = elem.Hcords[1];
-				else if (i == 1 && j == 1)
-					cords[1] = elem.Hcords[1];
-				else if (i == 2 && j == 1)
-					cords[0] = -1. * elem.Hcords[1];
-				else if (i == 3 && j == 1)
-					cords[1] = -1. * elem.Hcords[1];
-				for (int k = 0; k < 4; ++k) {
-					elem.walls[i][j][k] = pFunc[k](cords[0], cords[1]);
-				}
-			}
+		std::cout << "\n\n";
 
+		std::cout << "Elements:\n";
+		for (int i = this->nB; i >= 1; --i) {
+			for (int j = i; j <= this->nE; j += this->nB) {
+				elements[j - 1].show();
+				std::cout << "\t\t";
+			}
+			std::cout << std::endl;
 		}
 	}
-	else if (elem.N == 3) {//todo
-		cords.resize(elem.N);
+};
 
-		for (int i = 0; i < 4; ++i) {
-			if (i == 0) {
-				cords[0] = (-1. * elem.Hcords[1]);
-				cords[1] = (-1. * elem.Hcords[0]);
-				cords[2] = (-1. * elem.Hcords[0]);
-			}
-			else if (i == 1) {
-				cords[0] = (elem.Hcords[0]);
-				cords[1] = (-1. * elem.Hcords[1]);
-			}
-			else if (i == 2) {
-				cords[0] = (elem.Hcords[1]);
-				cords[1] = (elem.Hcords[0]);
-			}
-			else if (i == 3) {
-				cords[0] = (-1. * elem.Hcords[0]);
-				cords[1] = (elem.Hcords[1]);
-			}
 
-			for (int j = 0; j < elem.N; ++j) {
-				if (i == 0 && j == 1)
-					cords[0] = elem.Hcords[1];
-				else if (i == 1 && j == 1)
-					cords[1] = elem.Hcords[1];
-				else if (i == 2 && j == 1)
-					cords[0] = -1. * elem.Hcords[1];
-				else if (i == 3 && j == 1)
-					cords[1] = -1. * elem.Hcords[1];
-				for (int k = 0; k < 4; ++k) {
-					elem.walls[i][j][k] = pFunc[k](cords[0], cords[1]);
-				}
-			}
 
+void ID_cnt(int tmp1, int nH, std::vector <element>& elements) {
+	int tmp2 = tmp1 + nH;
+	elements.push_back({ tmp1, tmp2, tmp2 + 1, tmp1 + 1 });
+}
+
+void nodesID(grid &net) {
+	double dX = net.dX, dY = net.dY;
+
+	for (int i = 0; i < net.nB; ++i) {
+		for (int j = 0; j < net.nH; ++j) {
+			if (i == 0 || j == 0 || i + 1 == net.nB || j + 1 == net.nH)
+				net.nodes.push_back({ i * dX, j * dY, 1 });
+			else
+				net.nodes.push_back({ i * dX, j * dY, 0 });
 		}
 	}
 
-	std::vector<pom> pom1;
-	pom1.resize(4);
-	
-	double detj;
-	double a = net.elements[0].cords[2].x - net.elements[0].cords[1].x;
-	double b = net.elements[0].cords[2].y - net.elements[0].cords[1].y;
-	detj = sqrt((a*a)+(b*b));
+}
 
-	detj = detj / 2;
+void elementsID(grid &net) {
+	int tmp = 1, nH = net.nH;
+	ID_cnt(tmp, nH, net.elements);
+	++tmp;
 
-	for (int i = 0; i < 4; ++i) {
-		for (int j = 0; j < 4; ++j) {
-			elem.Pvector[i][j] = conductivity * ambTemp * (elem.walls[i][0][j] + elem.walls[i][1][j]) * detj;//Obliczanie wektora P
-			//std::cout << elem.Pvector[i][j] << std::endl;
-			for (int k = 0; k < 4; ++k) {
-				pom1[i].PC1[j][k] = conductivity * (elem.walls[i][0][j] * elem.walls[i][0][k]);
-				pom1[i].PC2[j][k] = conductivity * (elem.walls[i][1][j] * elem.walls[i][1][k]);
-			}
+	for (int i = 1; i < net.nE; ++i) {
+		if (tmp % net.nH != 0) {
+			ID_cnt(tmp, nH, net.elements);
+			++tmp;
 		}
-	}
-
-	for (int i = 0; i < 4; ++i) {
-		for (int j = 0; j < 4; ++j) {
-			for (int k = 0; k < 4; ++k) {
-				elem.surface[i][j][k] = detj * (pom1[i].PC1[j][k] + pom1[i].PC2[j][k]);
-			}
+		else {
+			++tmp;
+			ID_cnt(tmp, nH, net.elements);
+			++tmp;
 		}
 	}
 }
 
-void cmatrixCnt(grid& net, element4_2D elem, double ro, double cp) {
-	double (*pFunc[4])(double, double);//Funkcje ksztaltu
-	pFunc[0] = N1;
-	pFunc[1] = N2;
-	pFunc[2] = N3;
-	pFunc[3] = N4;
+grid netGenerate(double H, double B, int nH, int nB) {
 
-	vec2D arr1;
-	arr1.resize(elem.pointsNumber);
-	std::vector<vec2D> pom;
-	pom.resize(elem.pointsNumber);
-	for (int i = 0; i < 4; ++i) {
-		pom[i].resize(4);
-		arr1[i].resize(4);
-		for (int j = 0; j < 4; ++j) {
-			pom[i][j].resize(4);
-		}
-	}
+	grid net = { H, B, nH, nB };
 
-	for (int i = 0; i < elem.pointsNumber; ++i) {
-		for (int j = 0; j < 4; ++j) {
-			arr1[i][j] = pFunc[j](elem.wKsi[i], elem.wEta[i]);
-		}
-	}
+	nodesID(net);
+
+	elementsID(net);
 
 	for (int i = 0; i < net.nE; ++i) {
-		for (int j = 0; j < elem.pointsNumber; ++j) {
-			for (int k = 0; k < 4; ++k) {
-				for (int l = 0; l < 4; ++l) {
-					net.elements[i].Cmatrix[k][l] += ro * cp * (arr1[j][k] * arr1[j][l]) * net.elements[i].jak.det[j];//Obliczanie macierzy C dla elementyu sumujac poszczegolne dla punktow calkowania
-				}
-			}
-		}
-	}
-}
-
-element4_2D derivate(int N) {
-	element4_2D elem = { N };
-	double (*pFunc[4])(double);//Pochodne po dEta
-	pFunc[0] = dN1;
-	pFunc[1] = dN2;
-	pFunc[2] = dN3;
-	pFunc[3] = dN4;
-
-	double (*pFunc2[4])(double);//Pochodne po dKsi
-	pFunc2[0] = dN1;
-	pFunc2[1] = dN4;
-	pFunc2[2] = dN3;
-	pFunc2[3] = dN2;
-
-	for (int i = 0; i < elem.pointsNumber; ++i) {
 		for (int j = 0; j < 4; ++j) {
-			elem.dKsi[i][j] = pFunc[j](elem.wEta[i]);
-			elem.dEta[i][j] = pFunc2[j](elem.wKsi[i]);
+			net.elements[i].cords[j] = net.nodes[net.elements[i].ID[j] - 1];
 		}
 	}
 
-	elem.showDerivates();
+	net.showNet();
 
-	std::cout << std::endl;
-
-	return elem;
+	return net;
 }
-#endif	
+#endif
