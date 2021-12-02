@@ -16,7 +16,9 @@ double detCnt(vec2D res) {
 void jcnt(int i, int j, element4_2D elem, grid& net) {
 		for (int k = 0; k < 4; ++k) {
 			net.elements[i].jak.PC[j][0][0] += (double)elem.dEta[j][k] * (double)net.elements[i].cords[k].y;
+			//std::cout << "\n" << elem.dEta[j][k] << " * " << net.elements[i].cords[k].y;
 			net.elements[i].jak.PC[j][1][1] += (double)elem.dKsi[j][k] * (double)net.elements[i].cords[k].x;
+			//std::cout << "\n" << elem.dKsi[j][k] << " * " << net.elements[i].cords[k].x;
 		}
 }
 
@@ -48,11 +50,11 @@ void jakobianCnt(grid &net, element4_2D &elem) {
 		oJakobian(net.elements[i].jak);
 	}
 
-	/*std::cout << "jakobian arays:\n";
-	for (int i = 0; i < net.Ne; ++i) {
-		std::cout << "element " << i + 1 << std::endl << "----------------------------------------------\n";
-		net.elements[i].jak.showjakobian();
-	}*/
+	//std::cout << "jakobian arays:\n";
+	//for (int i = 0; i < net.nE; ++i) {
+	//	std::cout << "element " << i + 1 << std::endl << "----------------------------------------------\n";
+	//	net.elements[i].jak.showJakobian();
+	//}
 
 }
 
