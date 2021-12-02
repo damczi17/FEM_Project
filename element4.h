@@ -234,8 +234,8 @@ void wallsCnt(grid net, element4_2D& elem, double conductivity, double ambTemp) 
 
 	std::vector<pom> pom1;
 	pom1.resize(4);
+	
 	double detj;
-
 	double a = net.elements[0].cords[2].x - net.elements[0].cords[1].x;
 	double b = net.elements[0].cords[2].y - net.elements[0].cords[1].y;
 	detj = sqrt((a*a)+(b*b));
@@ -245,6 +245,7 @@ void wallsCnt(grid net, element4_2D& elem, double conductivity, double ambTemp) 
 	for (int i = 0; i < 4; ++i) {
 		for (int j = 0; j < 4; ++j) {
 			elem.Pvector[i][j] = conductivity * ambTemp * (elem.walls[i][0][j] + elem.walls[i][1][j]) * detj;//Obliczanie wektora P
+			//std::cout << elem.Pvector[i][j] << std::endl;
 			for (int k = 0; k < 4; ++k) {
 				pom1[i].PC1[j][k] = conductivity * (elem.walls[i][0][j] * elem.walls[i][0][k]);
 				pom1[i].PC2[j][k] = conductivity * (elem.walls[i][1][j] * elem.walls[i][1][k]);
@@ -259,9 +260,43 @@ void wallsCnt(grid net, element4_2D& elem, double conductivity, double ambTemp) 
 			}
 		}
 	}
-
 }
 
+void cmatrixCnt(grid& net, element4_2D elem, double ro, double cp) {
+	double (*pFunc[4])(double, double);//Funkcje ksztaltu
+	pFunc[0] = N1;
+	pFunc[1] = N2;
+	pFunc[2] = N3;
+	pFunc[3] = N4;
+
+	vec2D arr1;
+	arr1.resize(elem.pointsNumber);
+	std::vector<vec2D> pom;
+	pom.resize(elem.pointsNumber);
+	for (int i = 0; i < 4; ++i) {
+		pom[i].resize(4);
+		arr1[i].resize(4);
+		for (int j = 0; j < 4; ++j) {
+			pom[i][j].resize(4);
+		}
+	}
+
+	for (int i = 0; i < elem.pointsNumber; ++i) {
+		for (int j = 0; j < 4; ++j) {
+			arr1[i][j] = pFunc[j](elem.wKsi[i], elem.wEta[i]);
+		}
+	}
+
+	for (int i = 0; i < net.nE; ++i) {
+		for (int j = 0; j < elem.pointsNumber; ++j) {
+			for (int k = 0; k < 4; ++k) {
+				for (int l = 0; l < 4; ++l) {
+					net.elements[i].Cmatrix[k][l] += ro * cp * (arr1[j][k] * arr1[j][l]) * net.elements[i].jak.det[j];//Obliczanie macierzy C dla elementyu sumujac poszczegolne dla punktow calkowania
+				}
+			}
+		}
+	}
+}
 
 element4_2D derivate(int N) {
 	element4_2D elem = { N };
