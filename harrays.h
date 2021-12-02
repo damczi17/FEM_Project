@@ -204,18 +204,21 @@ void HbcCnt(grid& net, element4_2D elem) {
 	}
 }
 
-void globalH(grid net, std::vector<std::vector<double>> &Hglobal, std::vector<double> &Pvector) {
+void globalH(grid net, std::vector<std::vector<double>> &Hglobal, std::vector<double> &Pvector, std::vector<std::vector<double>>& Cglobal) {
 	Hglobal.resize(net.nN);
+	Cglobal.resize(net.nN);
 	Pvector.resize(net.nN);
 	for (int i = 0; i < net.nN; ++i) {
 		Hglobal[i].resize(net.nN);
+		Cglobal[i].resize(net.nN);
 	}
 
 	for (int i = 0; i < net.nE; ++i) {
 		for (int j = 0; j < 4; ++j) {
 			Pvector[net.elements[i].ID[j] - 1] += net.elements[i].P[j];
 			for (int k = 0; k < 4; ++k) {
-				Hglobal[net.elements[i].ID[j] - 1][net.elements[i].ID[k] - 1] += net.elements[i].Hmatrix[j][k];
+				Hglobal[net.elements[i].ID[j] - 1][net.elements[i].ID[k] - 1] += net.elements[i].Hmatrix[j][k] + net.elements[i].Hbc[j][k];
+				Cglobal[net.elements[i].ID[j] - 1][net.elements[i].ID[k] - 1] += net.elements[i].Cmatrix[j][k];
 			}
 		}
 	}
