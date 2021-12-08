@@ -10,11 +10,11 @@ typedef std::vector<std::vector<double>> vec2D;
 struct jakobian {
 	std::vector<vec2D> PC, oPC;
 	std::vector<double> det;
-	jakobian() {
-		PC.resize(4);
-		oPC.resize(4);
-		det.resize(4);
-		for (int i = 0; i < 4; ++i) {
+	void chng_size(int N) {
+		PC.resize(N);
+		oPC.resize(N);
+		det.resize(N);
+		for (int i = 0; i < N; ++i) {
 			PC[i].resize(2);
 			oPC[i].resize(2);
 			for (int j = 0; j < 2; ++j) {
@@ -23,8 +23,8 @@ struct jakobian {
 			}
 		}
 	}
-	void showJakobian() {
-		for (int i = 0; i < 4; ++i) {
+	void showJakobian(int N) {
+		for (int i = 0; i < N; ++i) {
 			for (int j = 0; j < 2; ++j) {
 				for (int k = 0; k < 2; ++k) {
 					std::cout << this->oPC[i][j][k] << " ";
@@ -39,7 +39,7 @@ struct jakobian {
 struct node {
 	double x, y;
 	bool BC;
-	double initTemp;
+	double Temp;
 	void show() {
 		std::cout << "(" << x << "," << y << ") BC: " << BC;
 	}
@@ -152,7 +152,7 @@ void elementsID(grid &net) {
 	}
 }
 
-grid netGenerate(double H, double B, int nH, int nB) {
+grid netGenerate(double H, double B, int nH, int nB, double initTemp) {
 
 	grid net = { H, B, nH, nB };
 
@@ -160,13 +160,17 @@ grid netGenerate(double H, double B, int nH, int nB) {
 
 	elementsID(net);
 
-	for (int i = 0; i < net.nE; ++i) {
+	for (int i = 0; i < net.nN; ++i) {
+		net.nodes[i].Temp = initTemp; //przypisanie temperatury poczatkowej do wezlow
+	}
+
+	for (int i = 0; i < net.nE; ++i) {	
 		for (int j = 0; j < 4; ++j) {
-			net.elements[i].cords[j] = net.nodes[net.elements[i].ID[j] - 1];
+			net.elements[i].cords[j] = net.nodes[net.elements[i].ID[j] - 1];//przypisanie wsp. wezlow do elementu	
 		}
 	}
 
-	net.showNet();
+	//net.showNet();
 
 	return net;
 }
