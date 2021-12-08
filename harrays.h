@@ -13,30 +13,34 @@ typedef std::vector<std::vector<double>> vec2D;
 
 struct harrays {
 	vec2D tabX, tabY;
-	harrays() {
-		tabX.resize(4);
-		tabY.resize(4);
-		for (int i = 0; i < 4; ++i) {
+	void chng_size(int points) {
+		tabX.resize(points);
+		tabY.resize(points);
+		for (int i = 0; i < points; ++i) {
 			tabX[i].resize(4);
 			tabY[i].resize(4);
 		}
 	}
 };
 
+//Wyliczanie dN/dx oraz dN/dy
 void harraycnt(grid& net, element4_2D elem, double conductivity) {
+	
 	std::vector<harrays> Harray1;
-
 	Harray1.resize(net.nE);
+
 	for (int i = 0; i < net.nE; ++i) {
-		for (int j = 0; j < 4; ++j) {
+		Harray1[i].chng_size(elem.pointsNumber);
+		for (int j = 0; j < elem.pointsNumber; ++j) {
 			for (int k = 0; k < 4; ++k) {
-				Harray1[i].tabX[j][k] = net.elements[i].jak.oPC[0][0][0] * elem.dKsi[j][k] + net.elements[i].jak.oPC[0][0][1] * elem.dEta[j][k];
-				Harray1[i].tabY[j][k] = net.elements[i].jak.oPC[0][1][0] * elem.dKsi[j][k] + net.elements[i].jak.oPC[0][1][1] * elem.dEta[j][k];
+				Harray1[i].tabX[j][k] = net.elements[i].jak.oPC[j][0][0] * elem.dKsi[j][k] + net.elements[i].jak.oPC[j][0][1] * elem.dEta[j][k];
+				Harray1[i].tabY[j][k] = net.elements[i].jak.oPC[j][1][0] * elem.dKsi[j][k] + net.elements[i].jak.oPC[j][1][1] * elem.dEta[j][k];
 			}
 		}
 	}
 
-		//std::cout << "\nMacierz X\n";
+		
+	//std::cout << "\nMacierz X\n";
 
 		//for (int i = 0; i < net.nE; ++i) {
 		//	for (int j = 0; j < 4; ++j) {
@@ -60,30 +64,26 @@ void harraycnt(grid& net, element4_2D elem, double conductivity) {
 		//	std::cout << std::endl;
 		//}
 
-	std::vector<std::vector<vec2D>> tabH, tabH2, sum;
-	vec2D result;
+	std::vector<std::vector<vec2D>> tabH, tabH2;
 	tabH.resize(net.nE);
 	tabH2.resize(net.nE);
-	sum.resize(net.nE);
 
 	for (int i = 0; i < net.nE; ++i) {
-		tabH[i].resize(4);
-		tabH2[i].resize(4);
-		sum[i].resize(4);
-		for (int j = 0; j < 4; ++j) {
+		tabH[i].resize(elem.pointsNumber);
+		tabH2[i].resize(elem.pointsNumber);
+		for (int j = 0; j < elem.pointsNumber; ++j) {
 			tabH[i][j].resize(4);
 			tabH2[i][j].resize(4);
-			sum[i][j].resize(4);
 			for (int k = 0; k < 4; ++k) {
 				tabH[i][j][k].resize(4);
 				tabH2[i][j][k].resize(4);
-				sum[i][j][k].resize(4);
 			}
 		}
 	}
 
+	//Wyliczanie macierzy H dla punktow calkowania
 	for (int i = 0; i < net.nE; ++i) {
-		for (int j = 0; j < 4; ++j) {
+		for (int j = 0; j < elem.pointsNumber; ++j) {
 			for (int k = 0; k < 4; ++k) {
 				for (int l = 0; l < 4; ++l) {
 					tabH[i][j][k][l] = Harray1[i].tabX[j][k] * Harray1[i].tabX[j][l];
@@ -93,118 +93,49 @@ void harraycnt(grid& net, element4_2D elem, double conductivity) {
 		}
 	}
 
+
+	//Wyliczanie macierzy H dla elementu
 	for (int i = 0; i < net.nE; ++i) {
-		for (int j = 0; j < 4; ++j) {
+		for (int j = 0; j < elem.pointsNumber; ++j) {
 			for (int k = 0; k < 4; ++k) {
 				for (int l = 0; l < 4; ++l) {
-					sum[i][j][k][l] = conductivity * (tabH[i][j][k][l] + tabH2[i][j][k][l]) * net.elements[i].jak.det[k]; //Wyliczanie macierzy H dla PC
-				}
-			}
-		}
-	}
-
-	//for (int i = 0; i < net.nE; ++i) {
-	//	for (int j = 0; j < 4; ++j) {
-	//		std::cout << "\nH matrix PC " << j + 1 << "\n";	
-	//		for (int k = 0; k < 4; ++k) {
-	//			for (int l = 0; l < 4; ++l) {
-	//				std::cout << sum[i][j][k][l] << " ";
-	//			}
-	//			std::cout << std::endl;
-	//		}
-	//	}
-	//}
-
-	for (int i = 0; i < net.nE; ++i) {
-		for (int j = 0; j < 4; ++j) {
-			for (int k = 0; k < 4; ++k) {
-				for (int l = 0; l < 4; ++l) {
-					net.elements[i].Hmatrix[k][l] += sum[i][j][k][l];//Wyliczanie macierzy H dla elementow skoczonych
+					net.elements[i].Hmatrix[k][l] += conductivity * elem.ak2[j] * (tabH[i][j][k][l] + tabH2[i][j][k][l]) * net.elements[i].jak.det[k];
 				}
 			}
 		}
 	}
 }
 
+
+void HbcMatrixAdd(element &element, vec2D surface, std::vector<double> Pvec) {
+	for (int j = 0; j < 4; ++j) {
+		element.P[j] += Pvec[j];
+		for (int k = 0; k < 4; ++k) {
+			element.Hbc[j][k] += surface[j][k];
+		}
+	}
+}
+//Wyliczanie macierzy Hbc i wketroa P dla elementu
 void HbcCnt(grid& net, element4_2D elem) {
 	for (int i = 0; i < net.nE; ++i) {
-		if (net.elements[i].cords[0].BC == 0 && net.elements[i].cords[2].BC == 0) {
-			continue;
+		if (net.elements[i].cords[0].BC == 1 && net.elements[i].cords[1].BC == 1) {
+			HbcMatrixAdd(net.elements[i], elem.surface[0], elem.Pvector[0]);
 		}
-		else {
-			if (net.elements[i].cords[0].BC == 1 && net.elements[i].cords[1].BC == 1) {
-				if (net.elements[i].cords[2].BC == 1) {
-					for (int j = 0; j < 4; ++j) {
-						net.elements[i].P[j] = elem.Pvector[0][j] + elem.Pvector[1][j];
-						for (int k = 0; k < 4; ++k) {
-							net.elements[i].Hbc[j][k] = elem.surface[0][j][k] + elem.surface[1][j][k];
-						}
-					}
-				}
-				else if (net.elements[i].cords[3].BC == 1) {
-					for (int j = 0; j < 4; ++j) {
-						net.elements[i].P[j] = elem.Pvector[0][j] + elem.Pvector[3][j];
-						for (int k = 0; k < 4; ++k) {
-							net.elements[i].Hbc[j][k] = elem.surface[0][j][k] + elem.surface[3][j][k];
-						}
-					}
-				}
-				else {
-					for (int j = 0; j < 4; ++j) {
-						net.elements[i].P[j] = elem.Pvector[0][j];
-						for (int k = 0; k < 4; ++k) {
-							net.elements[i].Hbc[j][k] = elem.surface[0][j][k];
-						}
-					}
-				}
-			}
-			else if (net.elements[i].cords[2].BC == 1 && net.elements[i].cords[3].BC == 1) {
-				if (net.elements[i].cords[1].BC == 1) {
-					for (int j = 0; j < 4; ++j) {
-						net.elements[i].P[j] = elem.Pvector[1][j] + elem.Pvector[2][j];
-						for (int k = 0; k < 4; ++k) {
-							net.elements[i].Hbc[j][k] = elem.surface[1][j][k] + elem.surface[2][j][k];
-						}
-					}
-				}
-				else if (net.elements[i].cords[0].BC == 1) {
-					for (int j = 0; j < 4; ++j) {
-						net.elements[i].P[j] = elem.Pvector[2][j] + elem.Pvector[3][j];
-						for (int k = 0; k < 4; ++k) {
-							net.elements[i].Hbc[j][k] = elem.surface[2][j][k] + elem.surface[3][j][k];
-						}
-					}
-				}
-				else {
-					for (int j = 0; j < 4; ++j) {
-						net.elements[i].P[j] = elem.Pvector[2][j];
-						for (int k = 0; k < 4; ++k) {
-							net.elements[i].Hbc[j][k] = elem.surface[2][j][k];
-						}
-					}
-				}
-			}
-			else if (net.elements[i].cords[1].BC == 1 && net.elements[i].cords[2].BC == 1) {
-				for (int j = 0; j < 4; ++j) {
-					net.elements[i].P[j] = elem.Pvector[1][j];
-					for (int k = 0; k < 4; ++k) {
-						net.elements[i].Hbc[j][k] = elem.surface[1][j][k];
-					}
-				}
-			}
-			else if (net.elements[i].cords[0].BC == 1 && net.elements[i].cords[3].BC == 1) {
-				for (int j = 0; j < 4; ++j) {
-					net.elements[i].P[j] = elem.Pvector[3][j];
-					for (int k = 0; k < 4; ++k) {
-						net.elements[i].Hbc[j][k] = elem.surface[3][j][k];
-					}
-				}
-			}
+		if (net.elements[i].cords[1].BC == 1 && net.elements[i].cords[2].BC == 1) {
+			HbcMatrixAdd(net.elements[i], elem.surface[1], elem.Pvector[1]);
+		}
+		if (net.elements[i].cords[2].BC == 1 && net.elements[i].cords[3].BC == 1) {
+			HbcMatrixAdd(net.elements[i], elem.surface[2], elem.Pvector[2]);
+		}
+		if (net.elements[i].cords[3].BC == 1 && net.elements[i].cords[0].BC == 1) {
+			HbcMatrixAdd(net.elements[i], elem.surface[3], elem.Pvector[3]);
 		}
 	}
 }
 
-void globalH(grid net, std::vector<std::vector<double>> &Hglobal, std::vector<double> &Pvector, std::vector<std::vector<double>>& Cglobal) {
+
+//Agregacja globalnych macierzy
+void agregation(grid net, std::vector<std::vector<double>> &Hglobal, std::vector<double> &Pvector, std::vector<std::vector<double>>& Cglobal) {
 	Hglobal.resize(net.nN);
 	Cglobal.resize(net.nN);
 	Pvector.resize(net.nN);
@@ -217,7 +148,7 @@ void globalH(grid net, std::vector<std::vector<double>> &Hglobal, std::vector<do
 		for (int j = 0; j < 4; ++j) {
 			Pvector[net.elements[i].ID[j] - 1] += net.elements[i].P[j];
 			for (int k = 0; k < 4; ++k) {
-				Hglobal[net.elements[i].ID[j] - 1][net.elements[i].ID[k] - 1] += net.elements[i].Hmatrix[j][k] + net.elements[i].Hbc[j][k];
+				Hglobal[net.elements[i].ID[j] - 1][net.elements[i].ID[k] - 1] += (net.elements[i].Hmatrix[j][k]) + net.elements[i].Hbc[j][k];
 				Cglobal[net.elements[i].ID[j] - 1][net.elements[i].ID[k] - 1] += net.elements[i].Cmatrix[j][k];
 			}
 		}
