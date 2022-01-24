@@ -39,31 +39,6 @@ void harraycnt(grid& net, element4_2D elem, double conductivity) {
 		}
 	}
 
-		
-	//std::cout << "\nMacierz X\n";
-
-		//for (int i = 0; i < net.nE; ++i) {
-		//	for (int j = 0; j < 4; ++j) {
-		//		for (int k = 0; k < 4; ++k) {
-		//			std::cout << Harray1[i].tabX[j][k] << " ";
-		//		}
-		//		std::cout << std::endl;
-		//	}
-		//	std::cout << std::endl;
-		//}
-
-		//std::cout << "\nMacierz Y\n";
-
-		//for (int i = 0; i < net.nE; ++i) {
-		//	for (int j = 0; j < 4; ++j) {
-		//		for (int k = 0; k < 4; ++k) {
-		//			std::cout << Harray1[i].tabY[j][k] << " ";
-		//		}
-		//		std::cout << std::endl;
-		//	}
-		//	std::cout << std::endl;
-		//}
-
 	std::vector<std::vector<vec2D>> tabH, tabH2;
 	tabH.resize(net.nE);
 	tabH2.resize(net.nE);
@@ -135,11 +110,13 @@ void HbcCnt(grid& net, element4_2D elem) {
 
 
 //Agregacja globalnych macierzy
-void agregation(grid net, std::vector<std::vector<double>> &Hglobal, std::vector<double> &Pvector, std::vector<std::vector<double>>& Cglobal) {
+void agregation(grid net, std::vector<std::vector<double>> &Hglobal, std::vector<double> &Pvector, std::vector<std::vector<double>>& Cglobal, std::vector<std::vector<double>>& Hbcglobal) {
 	Hglobal.resize(net.nN);
+	Hbcglobal.resize(net.nN);
 	Cglobal.resize(net.nN);
 	Pvector.resize(net.nN);
 	for (int i = 0; i < net.nN; ++i) {
+		Hbcglobal[i].resize(net.nN);
 		Hglobal[i].resize(net.nN);
 		Cglobal[i].resize(net.nN);
 	}
@@ -148,7 +125,8 @@ void agregation(grid net, std::vector<std::vector<double>> &Hglobal, std::vector
 		for (int j = 0; j < 4; ++j) {
 			Pvector[net.elements[i].ID[j] - 1] += net.elements[i].P[j];
 			for (int k = 0; k < 4; ++k) {
-				Hglobal[net.elements[i].ID[j] - 1][net.elements[i].ID[k] - 1] += (net.elements[i].Hmatrix[j][k]) + net.elements[i].Hbc[j][k];
+				Hglobal[net.elements[i].ID[j] - 1][net.elements[i].ID[k] - 1] += (net.elements[i].Hmatrix[j][k]);
+				Hbcglobal[net.elements[i].ID[j] - 1][net.elements[i].ID[k] - 1] += (net.elements[i].Hbc[j][k]);
 				Cglobal[net.elements[i].ID[j] - 1][net.elements[i].ID[k] - 1] += net.elements[i].Cmatrix[j][k];
 			}
 		}

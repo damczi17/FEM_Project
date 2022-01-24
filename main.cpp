@@ -1,4 +1,4 @@
-#include<iostream>
+#include <iostream>
 #include <algorithm>
 
 #include "net.h"
@@ -6,78 +6,87 @@
 #include "jakobian.h"
 #include "harrays.h"
 #include "globalstruct.h"
+#include "import.h"
+
 
 
 #define H 0.1 //Height of physical net
 #define B 0.1 //Width of physical net
-#define nH 4 //Height of net
-#define nB 4 //Width of net
-#define N 3 //Number of integration points
-#define conductivity 25 //Conductivity [W/(mC)]
-#define alfa 300 //Conductivity [W/(mC)]
-#define ambTemp 1200 //ambient temperature [C]
-#define c 700 //specific heat [J/(kgC)]
-#define ro 7800 //density [kg/m3]
-#define step 50 //simulation step time [s]
-#define time 500 //simulation time [s]
-#define initTemperature 100 //initial temperature [C]
+#define nH 5 //Height of net
+#define nB 5 //Width of net
+#define N 2 //Number of integration points
 
 
 int main() {
 
-	grid net = netGenerate(H, B, nH, nB, initTemperature);
+	//ISO C++17 Standard
+
+	//Initial data:
+	//Version without imput file:
+	
+	Simulation1.SimulationTime = 500;//simulation time [s]
+	Simulation1.SimulationStepTime = 50; //simulation step time [s]
+	Simulation1.Conductivity = 25; //Conductivity [W/(mC)]
+	Simulation1.Alfa = 300; //Alfa [W/m^2K)]
+	Simulation1.Tot = 1200; //ambient temperature [C]
+	Simulation1.InitialTemp = 100; //initial temperature [C]
+	Simulation1.Density = 7800;//density [kg/m3]
+	Simulation1.SpecificHeat = 700;  //specific heat [J/(kgC)]
+	grid net = netGenerate(H, B, nH, nB, Simulation1.InitialTemp);
+	
+	//end
+
+
+	//Initial data:
+	//Version with input file
+	
+	//grid net;
+	//importData("mynet.txt", net);
+
+	//for (int i = 0; i < net.nE; ++i) {
+	//	for (int j = 0; j < 4; ++j) {
+	//		net.elements[i].cords[j] = net.nodes[net.elements[i].ID[j] - 1];
+	//	}
+	//}
+	
+	//end
+
 	element4_2D elem = derivate(N);
 
 	jakobianCnt(net, elem);
 
-	harraycnt(net, elem, conductivity);
+	harraycnt(net, elem, Simulation1.Conductivity);
 
-	wallsCnt(net, elem, alfa, ambTemp);
+	wallsCnt(net, elem, Simulation1.Alfa, Simulation1.Tot);
 
 	HbcCnt(net, elem);
 
-	globalMatices global1;
+	cmatrixCnt(net, elem, Simulation1.Density, Simulation1.SpecificHeat);
 
-	cmatrixCnt(net, elem, ro, c);
-
-	agregation(net, global1.Hglobal, global1.Pglobal, global1.Cglobal);
-
-	//for (int i = 0; i < net.nE; ++i) {
-	//	std::cout << "Element: " << i + 1 << std::endl;
-	//	for (int j = 0; j < 4; ++j) {
-	//		for (int k = 0; k < 4; ++k) {
-	//			std::cout << net.elements[i].Hbc[j][k] << " ";
-	//		}
-	//		std::cout << std::endl;
-	//	}
-	//	std::cout << std::endl;
-	//}
+	agregation(net, global1.Hglobal, global1.Pglobal, global1.Cglobal, global1.Hbcglobal);
 	
-	std::cout << net.elements[0].jak.det[0];
 	global1.showMatrices();
+	//simulation
+	globalH_C(net, global1.Hglobal, global1.Cglobal, Simulation1.SimulationStepTime);
+	
 
-	globalH_C(net, global1.Hglobal, global1.Cglobal, step);
-
-	//std::cout << "\n\nGlobal H + C/dT matrix\n";
-	//for (int i = 0; i < net.nN; ++i) {
-	//	for (int j = 0; j < net.nN; ++j) {
-	//		std::cout << global1.Hglobal[i][j] << " ";
-	//	}
-	//	std::cout << std::endl;
-	//}
-
+	global1.showMatrices();
 
 	std::vector<double> tempSolution;
 
-	for (int i = step; i <= time ; i+=step) {
-		std::cout << "\n--------------------------------------------\n";
+	for (int i = Simulation1.SimulationStepTime; i <= Simulation1.SimulationTime; i+= Simulation1.SimulationStepTime) {
 		
-		tempSolution = PvectorCnt(net, global1, step);
+		tempSolution = PvectorCnt(net, global1, Simulation1.SimulationStepTime);
 		tempSolution = equationSolve(global1.Hglobal, tempSolution);
+
+		for (int i = 0; i < net.nN; ++i) {
+			std::cout << tempSolution[i] << std::endl;
+		}
 
 		auto [min, max] = std::minmax_element(begin(tempSolution), end(tempSolution));
 		std::cout << "\nTime " << i << " sec temperature value: " << *min << " Max temperature value: " << *max << std::endl;
 		updateNodesTemp(net, tempSolution);
+
 	}
 
 	return 0;

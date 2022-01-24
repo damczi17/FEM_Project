@@ -90,9 +90,9 @@ struct element4_2D {
 			this->wKsi = { -1. * val , 0, val, -1. * val, 0, val, -1. * val, 0, val };
 			this->wEta = { -1. * val , -1. * val, -1. * val, 0, 0, 0, val, val, val };
 			this->Hcords = { -1. * val, 0, val };
-			this->ak = {5./9. , 8. / 9., 5. / 9. };
-			this->ak2 = { 5. / 9. * 5. / 9., 8. / 9. * 5. / 9. , 5. / 9. * 5. / 9, 
-				8. / 9. * 5. / 9., 8. / 9. * 8. / 9., 8. / 9. * 5./9.,5. / 9. * 5. / 9., 8. / 9. * 5. / 9. , 5. / 9. * 5. / 9};
+			this->ak = { 5. / 9. , 8. / 9., 5. / 9. };
+			this->ak2 = { 5. / 9. * 5. / 9., 8. / 9. * 5. / 9. , 5. / 9. * 5. / 9,//wagi do obliczania macierzy H
+				8. / 9. * 5. / 9., 8. / 9. * 8. / 9., 8. / 9. * 5. / 9.,5. / 9. * 5. / 9., 8. / 9. * 5. / 9. , 5. / 9. * 5. / 9 };
 		}
 	}
 
@@ -156,8 +156,8 @@ double dN4(double x) {
 }
 
 double detjCnt(grid net, int i) {
-	double a = net.elements[0].cords[i+1].x - net.elements[0].cords[i].x;
-	double b = net.elements[0].cords[i+1].y - net.elements[0].cords[i].y;
+	double a = net.elements[0].cords[i + 1].x - net.elements[0].cords[i].x;
+	double b = net.elements[0].cords[i + 1].y - net.elements[0].cords[i].y;
 	double res = sqrt((a * a) + (b * b));
 	return res / 2;
 }
@@ -213,7 +213,6 @@ void wallsCnt(grid net, element4_2D& elem, double alfa, double ambTemp) {
 		for (int i = 0; i < 4; ++i) {
 			for (int j = 0; j < 4; ++j) {
 				elem.Pvector[i][j] = alfa * ambTemp * (elem.walls[i][0][j] + elem.walls[i][1][j]) * detjCnt(net, i);//Obliczanie wektora P
-				std::cout << detjCnt(net, i);
 				for (int k = 0; k < 4; ++k) {
 					pom1[i].PC1[j][k] = alfa * (elem.walls[i][0][j] * elem.walls[i][0][k]);
 					pom1[i].PC2[j][k] = alfa * (elem.walls[i][1][j] * elem.walls[i][1][k]);
@@ -244,7 +243,7 @@ void wallsCnt(grid net, element4_2D& elem, double alfa, double ambTemp) {
 			}
 			else if (i == 2) {
 				cords[0] = (elem.Hcords[2]);
-				cords[1] = (1);	
+				cords[1] = (1);
 			}
 			else if (i == 3) {
 				cords[0] = (-1);

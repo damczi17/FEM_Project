@@ -38,7 +38,7 @@ struct jakobian {
 
 struct node {
 	double x, y;
-	bool BC;
+	bool BC = 0;
 	double Temp;
 	void show() {
 		std::cout << "(" << x << "," << y << ") BC: " << BC;
@@ -71,6 +71,9 @@ struct grid {
 
 	std::vector <element> elements;
 	std::vector <node> nodes;
+
+	grid() {
+	}
 
 	grid(double H, double B, int nH, int nB) {
 		this->H = H;

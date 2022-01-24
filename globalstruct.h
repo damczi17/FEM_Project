@@ -4,14 +4,22 @@
 #include<vector>
 
 struct globalMatices {
-	std::vector<std::vector<double>> Hglobal, Cglobal;
+	std::vector<std::vector<double>> Hglobal, Cglobal, Hbcglobal;
 	std::vector<double> Pglobal;
 
 	void showMatrices() {
-		std::cout << "\n\nGlobal H + Hbc matrix\n";
+		std::cout << "\n\nGlobal H matrix\n";
 		for (int i = 0; i < Hglobal.size(); ++i) {
 			for (int j = 0; j < Hglobal.size(); ++j) {
 				std::cout << Hglobal[i][j] << " ";
+			}
+			std::cout << std::endl;
+		}
+
+		std::cout << "\n\nGlobal Hbc matrix\n";
+		for (int i = 0; i < Hbcglobal.size(); ++i) {
+			for (int j = 0; j < Hbcglobal.size(); ++j) {
+				std::cout << Hbcglobal[i][j] << " ";
 			}
 			std::cout << std::endl;
 		}
@@ -30,7 +38,7 @@ struct globalMatices {
 		}
 		
 	}
-};
+}global1;
 
 std::vector<double> equationSolve(std::vector<std::vector<double>> a, std::vector<double> b) {
 
@@ -44,7 +52,6 @@ std::vector<double> equationSolve(std::vector<std::vector<double>> a, std::vecto
 	for (int i = 0; i < num; i++)
 		n[i] = 1 / a[i][i];
 
-	// Calculate M = -D^-1 (L + U)
 	for (int i = 0; i < num; i++)
 		for (int j = 0; j < num; j++)
 			if (i == j)
